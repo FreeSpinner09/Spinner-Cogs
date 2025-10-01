@@ -262,7 +262,7 @@ class McSync(commands.Cog):
             content = msg.content.strip()
             if content.lower() == "cancel":
                 reward_cmds = []
-Failures            break
+                break
             if content.lower() == "done":
                 break
 
