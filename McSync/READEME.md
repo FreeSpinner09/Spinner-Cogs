@@ -46,7 +46,7 @@ confirms their presence online via RCON, and rewards them with configurable comm
 1. Clone this repo into your Red cog folder:
 
 ```bash
-[p]repo add spinner-cogs https://github.com/FreeSpinner09/Spinner-Cogs main
+[p]repo add spinner-cogs https://github.com/FreeSpinner09/Spinner-Cogs
 [p]cog install spinner-cogs McSync
 [p]load McSync
 ```
