@@ -34,22 +34,22 @@ This confirms your repo has been added.
 [p]cog install spinner-cogs <cog_name>
 ```
 
-- Example: If your cog is named `mc_sync`, use:
+- Example: If your cog is named `McSync`, use:
 
 ```bash
-[p]cog install spinner-cogs mc_sync
+[p]cog install spinner-cogs McSync
 ```
 
 2. Once installed, load the cog:
 
 ```bash
-[p]load mc_sync
+[p]load McSync
 ```
 
 3. You can also update your cogs when you push new changes:
 
 ```bash
-[p]cog update mc_sync
+[p]cog update McSync
 ```
 
 ---
@@ -70,6 +70,3 @@ This confirms your repo has been added.
 ```bash
 [p]repo remove spinner-cogs
 ```
-
-- Keep your GitHub repo organized: each cog should be in its own folder with its own `mc_sync.py` (or relevant name), `__init__.py`, and `info.json` for proper installation.
-

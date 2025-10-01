@@ -5,7 +5,7 @@ import mcrcon
 import random
 import time
 
-class mc_sync(commands.Cog):
+class McSync(commands.Cog):
     """Sync Minecraft usernames with Discord and reward players via RCON."""
 
     def __init__(self, bot):
@@ -262,4 +262,4 @@ class mc_sync(commands.Cog):
 
 # Boilerplate
 async def setup(bot):
-    await bot.add_cog(mc_sync(bot))
+    await bot.add_cog(McSync(bot))

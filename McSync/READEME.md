@@ -46,9 +46,9 @@ confirms their presence online via RCON, and rewards them with configurable comm
 1. Clone this repo into your Red cog folder:
 
 ```bash
-[p]repo add mc_sync https://github.com/YOURUSERNAME/mc_sync
-[p]cog install mc_sync mc_sync
-[p]load mc_sync
+[p]repo add spinner-cogs https://github.com/FreeSpinner/Spinner-Cogs main
+[p]cog install spinner-cogs McSync
+[p]load McSync
 ```
 
 2. Configure RCON for your server:
