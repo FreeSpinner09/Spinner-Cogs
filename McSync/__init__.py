@@ -1,4 +1,4 @@
-from .mc_sync import McSync
+from .mcsync import McSync
 
 async def setup(bot):
     await bot.add_cog(McSync(bot))
