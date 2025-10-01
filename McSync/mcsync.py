@@ -55,22 +55,25 @@ class McSync(commands.Cog):
     # Helpers
     # --------------------------
 
-    async def _test_rcon(self, host: str, port: int, password: str):
-        """Try connecting to RCON with given details."""
+    async def _test_rcon(self, host: str, port: int, password: str, retries: int = 3, timeout: int = 5):
+        """Try connecting to RCON with given details, with retries."""
         async with self.rcon_lock:
-            try:
-                def run_cmd():
-                    with RconClient(host, port, passwd=password) as mcr:
-                        return mcr.run("list")
-                resp = await asyncio.get_event_loop().run_in_executor(None, run_cmd)
-                logger.info(f"RCON test successful for {host}:{port}")
-                return True if resp is not None else "No response from server."
-            except Exception as e:
-                logger.error(f"RCON test failed: {e}")
-                return f"RCON error: {e}"
+            for attempt in range(1, retries + 1):
+                try:
+                    def run_cmd():
+                        with RconClient(host, port, passwd=password, timeout=timeout) as mcr:
+                            return mcr.run("list")
+                    resp = await asyncio.get_event_loop().run_in_executor(None, run_cmd)
+                    logger.info(f"RCON test successful for {host}:{port} on attempt {attempt}")
+                    return True if resp is not None else "No response from server."
+                except Exception as e:
+                    logger.error(f"RCON test failed for {host}:{port} on attempt {attempt}: {e}")
+                    if attempt == retries:
+                        return f"RCON error: {e} after {retries} attempts"
+                    await asyncio.sleep(1)  # Wait before retrying
 
-    async def _send_rcon(self, guild: discord.Guild, command: str) -> str:
-        """Send a command via RCON with this guild’s config."""
+    async def _send_rcon(self, guild: discord.Guild, command: str, retries: int = 3, timeout: int = 5) -> str:
+        """Send a command via RCON with this guild’s config, with retries."""
         settings = await self.config.guild(guild).all()
         host = settings["rcon_host"]
         port = settings["rcon_port"]
@@ -80,16 +83,19 @@ class McSync(commands.Cog):
             return "⚠️ RCON is not configured. Admins can set it up with `!rcon set <host> <port> <password>`."
 
         async with self.rcon_lock:
-            try:
-                def run_cmd():
-                    with RconClient(host, port, passwd=pwd) as mcr:
-                        return mcr.run(command)
-                resp = await asyncio.get_event_loop().run_in_executor(None, run_cmd)
-                logger.info(f"RCON command '{command}' executed for guild {guild.id}")
-                return resp if resp else "No response from server."
-            except Exception as exc:
-                logger.error(f"RCON command error for guild {guild.id}: {exc}")
-                return f"⚠️ RCON error: {exc}"
+            for attempt in range(1, retries + 1):
+                try:
+                    def run_cmd():
+                        with RconClient(host, port, passwd=pwd, timeout=timeout) as mcr:
+                            return mcr.run(command)
+                    resp = await asyncio.get_event_loop().run_in_executor(None, run_cmd)
+                    logger.info(f"RCON command '{command}' executed for guild {guild.id} on attempt {attempt}")
+                    return resp if resp else "No response from server."
+                except Exception as exc:
+                    logger.error(f"RCON command error for guild {guild.id} on attempt {attempt}: {exc}")
+                    if attempt == retries:
+                        return f"⚠️ RCON error: {exc} after {retries} attempts"
+                    await asyncio.sleep(1)  # Wait before retrying
 
     async def _allowed_checker(self, ctx: commands.Context) -> bool:
         """Check if user has permission to use restricted commands."""
