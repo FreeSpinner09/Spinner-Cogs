@@ -10,7 +10,7 @@ This file explains how to **add your Spinner-Cogs GitHub repo** to Redbot and in
 2. Use the following command to add your GitHub repository:
 
 ```bash
-[p]repo add spinner-cogs https://github.com/FreeSpinner/Spinner-Cogs
+[p]repo add spinner-cogs https://github.com/FreeSpinner/Spinner-Cogs main
 ```
 
 - Replace `spinner-cogs` with any friendly name for your repo.
