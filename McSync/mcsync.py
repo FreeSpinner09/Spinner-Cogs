@@ -7,7 +7,6 @@ import time
 import re
 import logging
 from asyncio import Lock
-from mcrcon import MCRconError, MCRconConnectionError
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -60,10 +59,8 @@ class McSync(commands.Cog):
                         return mcr.command("list")
                 resp = await asyncio.get_event_loop().run_in_executor(None, run_cmd)
                 return True if resp is not None else "No response from server."
-            except MCRconConnectionError:
-                return "Failed to connect to the RCON server."
-            except MCRconError as e:
-                return f"RCON command error: {e}"
+            except mcrcon.MCRconException as e:
+                return f"RCON error: {e}"
             except Exception as e:
                 return f"Unexpected error: {e}"
 
@@ -84,10 +81,8 @@ class McSync(commands.Cog):
                         return mcr.command(command)
                 resp = await asyncio.get_event_loop().run_in_executor(None, run_cmd)
                 return resp if resp else "No response from server."
-            except MCRconConnectionError:
-                return "⚠️ Failed to connect to the RCON server."
-            except MCRconError as exc:
-                return f"⚠️ RCON command error: {exc}"
+            except mcrcon.MCRconException as exc:
+                return f"⚠️ RCON error: {exc}"
             except Exception as exc:
                 return f"⚠️ Unexpected RCON error: {exc}"
 
