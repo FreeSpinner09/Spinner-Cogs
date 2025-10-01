@@ -27,24 +27,29 @@ class McSync(commands.Cog):
     MCSYNC_IDENTIFIER = 0xBEEF1234
 
     def __init__(self, bot):
-        self.bot = bot
-        self.config = Config.get_conf(self, identifier=self.MCSYNC_IDENTIFIER)
-        self.rcon_lock = Lock()  # Lock for thread-safe RCON access
+        try:
+            self.bot = bot
+            self.config = Config.get_conf(self, identifier=self.MCSYNC_IDENTIFIER)
+            self.rcon_lock = Lock()  # Lock for thread-safe RCON access
 
-        default_user = {"mc_username": None, "synced": False}
-        default_guild = {
-            "roles_allowed": [],
-            "reward_cmds": [],
-            "rcon_host": None,
-            "rcon_port": 25575,
-            "rcon_password": None,
-        }
+            default_user = {"mc_username": None, "synced": False}
+            default_guild = {
+                "roles_allowed": [],
+                "reward_cmds": [],
+                "rcon_host": None,
+                "rcon_port": 25575,
+                "rcon_password": None,
+            }
 
-        self.config.register_user(**default_user)
-        self.config.register_guild(**default_guild)
+            self.config.register_user(**default_user)
+            self.config.register_guild(**default_guild)
 
-        # Temporary in-memory store for auth codes: {discord_id: {"mc_username": str, "code": str, "timestamp": float}}
-        self.temp_codes = {}
+            # Temporary in-memory store for auth codes
+            self.temp_codes = {}
+            logger.info("McSync cog initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize McSync cog: {e}")
+            raise
 
     # --------------------------
     # Helpers
@@ -58,8 +63,10 @@ class McSync(commands.Cog):
                     with RconClient(host, port, passwd=password) as mcr:
                         return mcr.run("list")
                 resp = await asyncio.get_event_loop().run_in_executor(None, run_cmd)
+                logger.info(f"RCON test successful for {host}:{port}")
                 return True if resp is not None else "No response from server."
             except Exception as e:
+                logger.error(f"RCON test failed: {e}")
                 return f"RCON error: {e}"
 
     async def _send_rcon(self, guild: discord.Guild, command: str) -> str:
@@ -78,8 +85,10 @@ class McSync(commands.Cog):
                     with RconClient(host, port, passwd=pwd) as mcr:
                         return mcr.run(command)
                 resp = await asyncio.get_event_loop().run_in_executor(None, run_cmd)
+                logger.info(f"RCON command '{command}' executed for guild {guild.id}")
                 return resp if resp else "No response from server."
             except Exception as exc:
+                logger.error(f"RCON command error for guild {guild.id}: {exc}")
                 return f"⚠️ RCON error: {exc}"
 
     async def _allowed_checker(self, ctx: commands.Context) -> bool:
@@ -253,7 +262,7 @@ class McSync(commands.Cog):
             content = msg.content.strip()
             if content.lower() == "cancel":
                 reward_cmds = []
-                break
+Failures            break
             if content.lower() == "done":
                 break
 
@@ -330,4 +339,9 @@ class McSync(commands.Cog):
 
 # Boilerplate
 async def setup(bot):
-    await bot.add_cog(McSync(bot))
+    try:
+        await bot.add_cog(McSync(bot))
+        logger.info("McSync cog loaded successfully")
+    except Exception as e:
+        logger.error(f"Failed to load McSync cog: {e}")
+        raise
