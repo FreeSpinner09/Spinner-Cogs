@@ -1,0 +1,12 @@
+{
+    "name": "mc_sync",
+    "short": "Sync Minecraft usernames with Discord and reward via RCON.",
+    "description": "Allows users to sync their Minecraft username, confirm in-game presence, and receive rewards via RCON. Includes role restrictions and admin management.",
+    "end_user_data_statement": "This cog stores user IDs, Minecraft usernames, and sync status for linking purposes. Data can be removed via unsync or full config reset.",
+    "author": ["FreeSpinner"],
+    "tags": ["minecraft", "sync", "rcon"],
+    "requirements": ["mcrcon"],
+    "hidden": false,
+    "min_bot_version": "3.5.0",
+    "type": "COG"
+}
