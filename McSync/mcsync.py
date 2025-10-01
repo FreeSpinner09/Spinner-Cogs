@@ -7,6 +7,7 @@ import time
 import re
 import logging
 import socket
+import traceback
 from asyncio import Lock
 
 # Setup logging
@@ -49,7 +50,7 @@ class McSync(commands.Cog):
             self.temp_codes = {}
             logger.info("McSync cog initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize McSync cog: {e}")
+            logger.error(f"Failed to initialize McSync cog: {e}\n{traceback.format_exc()}")
             raise
 
     # --------------------------
@@ -80,9 +81,9 @@ class McSync(commands.Cog):
                     if attempt == retries:
                         return f"RCON connection reset: {e}"
                 except Exception as e:
-                    logger.error(f"Unexpected RCON error for {host}:{port} on attempt {attempt}: {e}")
+                    logger.error(f"Unexpected RCON error for {host}:{port} on attempt {attempt}: {e}\n{traceback.format_exc()}")
                     if attempt == retries:
-                        return f"Unexpected RCON error: {e}"
+                        return f"Unexpected RCON error: {type(e).__name__}: {e}"
                 await asyncio.sleep(2)  # Delay between retries
             return "RCON error: Failed after all retries"
 
@@ -118,9 +119,9 @@ class McSync(commands.Cog):
                     if attempt == retries:
                         return f"⚠️ RCON connection reset: {e}"
                 except Exception as e:
-                    logger.error(f"Unexpected RCON error for command '{command}' on attempt {attempt}: {e}")
+                    logger.error(f"Unexpected RCON error for command '{command}' on attempt {attempt}: {e}\n{traceback.format_exc()}")
                     if attempt == retries:
-                        return f"⚠️ Unexpected RCON error: {e}"
+                        return f"⚠️ Unexpected RCON error: {type(e).__name__}: {e}"
                 await asyncio.sleep(2)
             return f"⚠️ RCON error: Failed after {retries} attempts"
 
@@ -376,5 +377,5 @@ async def setup(bot):
         await bot.add_cog(McSync(bot))
         logger.info("McSync cog loaded successfully")
     except Exception as e:
-        logger.error(f"Failed to load McSync cog: {e}")
+        logger.error(f"Failed to load McSync cog: {e}\n{traceback.format_exc()}")
         raise
