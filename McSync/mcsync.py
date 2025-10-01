@@ -30,6 +30,7 @@ class McSync(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=self.MCSYNC_IDENTIFIER)
         self.rcon_lock = Lock()  # Lock for thread-safe RCON access
+        self.rcon_clients = {}  # {guild_id: MCRcon instance}
 
         default_user = {"mc_username": None, "synced": False}
         default_guild = {
@@ -46,6 +47,21 @@ class McSync(commands.Cog):
         # Temporary in-memory store for auth codes: {discord_id: {"mc_username": str, "code": str, "timestamp": float}}
         self.temp_codes = {}
 
+    def _connect_rcon(self, guild_id: int, host: str, port: int, password: str):
+        """Connect to RCON in main thread and store client."""
+        try:
+            mcr = mcrcon.MCRcon(host, password, port=port)
+            mcr.connect()
+            self.rcon_clients[guild_id] = mcr
+            logger.info(f"RCON connected for guild {guild_id} at {host}:{port}")
+            return True
+        except mcrcon.MCRconException as e:
+            logger.error(f"RCON connection failed for guild {guild_id}: {e}")
+            return f"RCON error: {e}"
+        except Exception as e:
+            logger.error(f"Unexpected RCON error for guild {guild_id}: {e}")
+            return f"Unexpected error: {e}"
+
     # --------------------------
     # Helpers
     # --------------------------
@@ -53,16 +69,15 @@ class McSync(commands.Cog):
     async def _test_rcon(self, host: str, port: int, password: str):
         """Try connecting to RCON with given details."""
         async with self.rcon_lock:
-            try:
-                def run_cmd():
-                    with mcrcon.MCRcon(host, password, port=port) as mcr:
-                        return mcr.command("list")
-                resp = await asyncio.get_event_loop().run_in_executor(None, run_cmd)
-                return True if resp is not None else "No response from server."
-            except mcrcon.MCRconException as e:
-                return f"RCON error: {e}"
-            except Exception as e:
-                return f"Unexpected error: {e}"
+            # Use a temporary guild ID (0) for testing
+            result = await self.bot.loop.run_in_executor(
+                None, lambda: self._connect_rcon(0, host, port, password)
+            )
+            # Clean up test connection
+            if 0 in self.rcon_clients:
+                self.rcon_clients[0].disconnect()
+                del self.rcon_clients[0]
+            return result
 
     async def _send_rcon(self, guild: discord.Guild, command: str) -> str:
         """Send a command via RCON with this guild’s config."""
@@ -75,15 +90,32 @@ class McSync(commands.Cog):
             return "⚠️ RCON is not configured. Admins can set it up with `!rcon set <host> <port> <password>`."
 
         async with self.rcon_lock:
+            # Ensure RCON client exists and is connected
+            if guild.id not in self.rcon_clients:
+                result = await self.bot.loop.run_in_executor(
+                    None, lambda: self._connect_rcon(guild.id, host, port, pwd)
+                )
+                if result is not True:
+                    return result
+
             try:
                 def run_cmd():
-                    with mcrcon.MCRcon(host, pwd, port=port) as mcr:
-                        return mcr.command(command)
+                    # Check if still connected; reconnect if needed
+                    if not self.rcon_clients[guild.id].is_connected():
+                        self.rcon_clients[guild.id].connect()
+                    return self.rcon_clients[guild.id].command(command)
                 resp = await asyncio.get_event_loop().run_in_executor(None, run_cmd)
                 return resp if resp else "No response from server."
             except mcrcon.MCRconException as exc:
+                # Remove disconnected client
+                if guild.id in self.rcon_clients:
+                    self.rcon_clients[guild.id].disconnect()
+                    del self.rcon_clients[guild.id]
                 return f"⚠️ RCON error: {exc}"
             except Exception as exc:
+                if guild.id in self.rcon_clients:
+                    self.rcon_clients[guild.id].disconnect()
+                    del self.rcon_clients[guild.id]
                 return f"⚠️ Unexpected RCON error: {exc}"
 
     async def _allowed_checker(self, ctx: commands.Context) -> bool:
@@ -122,8 +154,11 @@ class McSync(commands.Cog):
             auth_code = f"{random.randint(1000, 9999)}"
             self.temp_codes[user_id] = {"mc_username": mc_username_lower, "code": auth_code, "timestamp": time.time()}
 
-            rcon_msg = f"Auth code for {ctx.author.name}: {auth_code}"
-            resp = await self._send_rcon(ctx.guild, f"tell {mc_username} {rcon_msg}")
+            rcon_msg = f"tell {mc_username} Auth code for {ctx.author.name}: {auth_code}"
+            resp = await self._send_rcon(ctx.guild, rcon_msg)
+
+            if "⚠️" in resp:
+                return await ctx.send(embed=self._embed("Error", resp, "error"))
 
             await ctx.send(embed=self._embed(
                 "Sync Initiated",
@@ -299,9 +334,17 @@ class McSync(commands.Cog):
         result = await self._test_rcon(host, port, password)
 
         if result is True:
+            # Update config
             await self.config.guild(ctx.guild).rcon_host.set(host)
             await self.config.guild(ctx.guild).rcon_port.set(port)
             await self.config.guild(ctx.guild).rcon_password.set(password)
+            # Ensure RCON client is created for this guild
+            if guild.id in self.rcon_clients:
+                self.rcon_clients[guild.id].disconnect()
+                del self.rcon_clients[guild.id]
+            await self.bot.loop.run_in_executor(
+                None, lambda: self._connect_rcon(ctx.guild.id, host, port, password)
+            )
             logger.info(f"RCON configured for guild {ctx.guild.id} at {host}:{port}")
             await ctx.send(embed=self._embed("RCON Config", f"✅ Connected & saved for `{host}:{port}`", "success"))
         else:
@@ -326,8 +369,21 @@ class McSync(commands.Cog):
         await self.config.guild(ctx.guild).rcon_host.clear()
         await self.config.guild(ctx.guild).rcon_port.clear()
         await self.config.guild(ctx.guild).rcon_password.clear()
+        if ctx.guild.id in self.rcon_clients:
+            self.rcon_clients[ctx.guild.id].disconnect()
+            del self.rcon_clients[ctx.guild.id]
         logger.info(f"RCON settings cleared for guild {ctx.guild.id}")
         await ctx.send(embed=self._embed("RCON Config", "🗑️ Cleared all RCON settings.", "info"))
+
+    def cog_unload(self):
+        """Clean up RCON connections on cog unload."""
+        for client in self.rcon_clients.values():
+            try:
+                client.disconnect()
+            except:
+                pass
+        self.rcon_clients.clear()
+        logger.info("RCON clients disconnected on cog unload.")
 
 # Boilerplate
 async def setup(bot):
