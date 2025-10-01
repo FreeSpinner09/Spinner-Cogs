@@ -1,7 +1,7 @@
 import discord
 from redbot.core import commands, Config, checks
 import asyncio
-from rcon.source import Client as RconClient  # Use rcon library instead of mcrcon
+from rcon.source import Client as RconClient
 import random
 import time
 import re
