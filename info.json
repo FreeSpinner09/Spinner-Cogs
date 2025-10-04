@@ -2,7 +2,7 @@
     "author": ["FreeSpinner"],
     "description": "A collection of Red Discord Bot cogs developed by FreeSpinner.",
     "install_msg": "To install a cog from this repository, use `[p]cog install spinner-cogs <cog_name>`.",
-    "short": "A collection of Red Discord Bot cogs.",
+    "short": "A collection of Red Discord Bot cogs by FreeSpinner.",
     "tags": ["utility", "moderation", "fun"],
     "type": "COG"
 }
