@@ -1,6 +1,6 @@
 # Spinner-Cogs Repository Instructions
 
-This file explains how to **add your Spinner-Cogs GitHub repo** to Redbot and install individual cogs from it.
+This file explains how to **add Spinner-Cogs GitHub repo** to Redbot and install individual cogs from it.
 
 ---
 
@@ -32,12 +32,6 @@ This confirms your repo has been added.
 
 ```bash
 [p]cog install spinner-cogs <cog_name>
-```
-
-- Example: If your cog is named `McSync`, use:
-
-```bash
-[p]cog install spinner-cogs McSync
 ```
 
 2. Once installed, load the cog:
