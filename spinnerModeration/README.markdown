@@ -290,25 +290,7 @@ Run these commands to configure the cog:
 ### File Structure
 - **`spinnerMod.py`**: Main cog file with all logic and commands.
 - **`__init__.py`**: Cog setup file:
-  ```python
-  from .spinnerMod import SpinnerModeration
-
-  def setup(bot):
-      bot.add_cog(SpinnerModeration(bot))
-  ```
 - **`info.json`**: Metadata for Redbot:
-  ```json
-  {
-      "author": ["Elijah Partney"],
-      "install_msg": "Thank you for installing SpinnerModeration! Use `[p]help SpinnerModeration` to get started.",
-      "name": "SpinnerModeration",
-      "short": "Advanced modular moderation system with point-based warns, logging, and GUI config.",
-      "description": "A powerful moderation cog featuring warnings, point thresholds, expiring warns, automated punishments, role-based mutes, DM notifications, and Discord-interaction-based configuration tools.",
-      "requirements": [],
-      "tags": ["moderation", "utility", "logging", "admin"],
-      "type": "COG"
-  }
-  ```
 
 ### Extending the Cog
 - **Localization**: Add `_()` from `redbot.core.i18n` for translatable strings.
