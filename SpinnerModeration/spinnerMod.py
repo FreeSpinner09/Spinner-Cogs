@@ -1,3 +1,4 @@
+
 import discord
 from discord import ui
 from redbot.core import commands, Config, checks
@@ -26,10 +27,15 @@ def is_mod_or_admin():
     async def predicate(ctx):
         if not ctx.guild:
             return False
-        cog = ctx.cog
-        if await cog.is_admin(ctx):
+        guild_conf = await ctx.cog.config.guild(ctx.guild).all()
+        if ctx.author.guild_permissions.administrator:
             return True
-        if await cog.is_mod(ctx):
+        if guild_conf["sync_red_perms"]:
+            if await checks.mod_or_permissions(manage_messages=True)(ctx):
+                return True
+        if any(role.id in guild_conf["mod_roles"] for role in ctx.author.roles):
+            return True
+        if any(role.id in guild_conf["admin_roles"] for role in ctx.author.roles):
             return True
         raise commands.CheckFailure("You do not have sufficient permissions to use this command.")
     return commands.check(predicate)
@@ -38,8 +44,13 @@ def is_admin():
     async def predicate(ctx):
         if not ctx.guild:
             return False
-        cog = ctx.cog
-        if await cog.is_admin(ctx):
+        guild_conf = await ctx.cog.config.guild(ctx.guild).all()
+        if ctx.author.guild_permissions.administrator:
+            return True
+        if guild_conf["sync_red_perms"]:
+            if await checks.admin_or_permissions(manage_guild=True)(ctx):
+                return True
+        if any(role.id in guild_conf["admin_roles"] for role in ctx.author.roles):
             return True
         raise commands.CheckFailure("You do not have admin permissions for this command.")
     return commands.check(predicate)
@@ -649,21 +660,26 @@ class PunishmentSetupView(ui.View):
 
     @ui.button(label="Add/Edit", style=discord.ButtonStyle.primary)
     async def add_edit(self, interaction: discord.Interaction, button: ui.Button):
-        if interaction.user.guild_permissions.administrator or await self.cog.is_mod_or_admin(interaction):
+        if interaction.user.guild_permissions.administrator or await self.cog.is_mod(interaction) or await self.cog.is_admin(interaction):
             modal = PunishmentAddModal(self.cog, self.guild, self)
             await interaction.response.send_modal(modal)
 
     @ui.button(label="Remove", style=discord.ButtonStyle.danger)
     async def remove(self, interaction: discord.Interaction, button: ui.Button):
-        modal = PunishmentRemoveModal(self.cog, self.guild, self)
-        await interaction.response.send_modal(modal)
+        if interaction.user.guild_permissions.administrator or await self.cog.is_mod(interaction) or await self.cog.is_admin(interaction):
+            modal = PunishmentRemoveModal(self.cog, self.guild, self)
+            await interaction.response.send_modal(modal)
 
     @ui.button(label="Close", style=discord.ButtonStyle.secondary)
     async def close(self, interaction: discord.Interaction, button: ui.Button):
         await interaction.response.edit_message(content="Setup closed.", embed=None, view=None)
 
 class DMTemplateModal(ui.Modal, title="Edit DM Template"):
-    template = ui.TextInput(label="DM Template", style=discord.TextStyle.paragraph, default="You have received a {action} in {guild}.\nReason: {reason}\nDuration: {duration}\nTotal Points: {points}")
+    template = ui.TextInput(
+        label="DM Template",
+        style=discord.TextStyle.paragraph,
+        default="You have received a {action} in {guild}.\nReason: {reason}\nDuration: {duration}\nTotal Points: {points}"
+    )
 
     def __init__(self, cog, guild):
         super().__init__()
