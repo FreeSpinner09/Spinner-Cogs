@@ -355,7 +355,7 @@ This cog is released under the [MIT License](https://opensource.org/licenses/MIT
 ---
 
 ## Contact
-- **Author**: Elijah Partney
+- **Author**: FreeSpinner
 - **Repository**: [Spinner-Cogs](https://github.com/FreeSpinner09/Spinner-Cogs)
 - **Issues**: Report bugs or request features on the repository’s issue tracker.
 
