@@ -171,24 +171,36 @@ class SpinnerModeration(commands.Cog):
         except discord.HTTPException as e:
             log.error(f"Failed to DM user {user.id}: {e}")
 
-    def parse_duration(self, duration_str: str) -> Optional[int]:
-        if not duration_str:
-            return None
-        total_seconds = 0
-        matches = re.findall(r"(\\d+)([smhdw])", duration_str.lower())
-        for value, unit in matches:
+def parse_duration(self, duration_str: str) -> Optional[int]:
+    if not duration_str:
+        return None
+    # Remove extra whitespace and convert to lowercase
+    duration_str = duration_str.strip().lower()
+    if not duration_str:
+        return None
+    total_seconds = 0
+    # Match numbers followed by s, m, h, d, or w
+    matches = re.findall(r"(\d+)\s*([smhdw])", duration_str)
+    if not matches:
+        log.debug(f"No valid duration matches found for input: '{duration_str}'")
+        return None
+    for value, unit in matches:
+        try:
             value = int(value)
-            if unit == "s":
-                total_seconds += value
-            elif unit == "m":
-                total_seconds += value * 60
-            elif unit == "h":
-                total_seconds += value * 3600
-            elif unit == "d":
-                total_seconds += value * 86400
-            elif unit == "w":
-                total_seconds += value * 604800
-        return total_seconds if total_seconds > 0 else None
+        except ValueError:
+            log.debug(f"Invalid number in duration: {value}")
+            return None
+        if unit == "s":
+            total_seconds += value
+        elif unit == "m":
+            total_seconds += value * 60
+        elif unit == "h":
+            total_seconds += value * 3600
+        elif unit == "d":
+            total_seconds += value * 86400
+        elif unit == "w":
+            total_seconds += value * 604800
+    return total_seconds
 
     async def mute_member(self, guild: discord.Guild, member: discord.Member, duration_seconds: Optional[int], reason: str):
         mute_role_id = await self.config.guild(guild).mute_role()
@@ -607,31 +619,31 @@ class PunishmentAddModal(ui.Modal, title="Add/Edit Punishment"):
         self.guild = guild
         self.view = view
 
-    async def on_submit(self, interaction: discord.Interaction):
-        try:
-            points_val = int(self.points.value)
-            action_val = self.action.value.lower()
-            if action_val not in ["mute", "kick", "ban", "warn"]:
-                return await interaction.response.send_message("Invalid action.", ephemeral=True)
-            duration_input = str(self.duration.value).strip() if self.duration.value else ""
-            duration_val = self.cog.parse_duration(duration_input)
-            if duration_input and not duration_val:
-                return await interaction.response.send_message(
-                    "Invalid duration format! Use examples like `1h30m`, `2d`, or `1w`.", ephemeral=True
-                    )
+async def on_submit(self, interaction: discord.Interaction):
+    try:
+        points_val = int(self.points.value)
+        action_val = self.action.value.lower()
+        if action_val not in ["mute", "kick", "ban", "warn"]:
+            return await interaction.response.send_message("Invalid action.", ephemeral=True)
+        duration_input = str(self.duration.value).strip() if self.duration.value else ""
+        duration_val = self.cog.parse_duration(duration_input) if duration_input else None
+        if duration_input and duration_val is None:
+            return await interaction.response.send_message(
+                "Invalid duration format! Use examples like `1h30m`, `2d`, `1w`, `12h`, or `25h`.", ephemeral=True
+            )
 
-            async with self.cog.config.guild(self.guild).punishments() as pun:
-                for p in pun:
-                    if p["points"] == points_val:
-                        p["action"] = action_val
-                        p["duration"] = duration_val
-                        break
-                else:
-                    pun.append({"points": points_val, "action": action_val, "duration": duration_val})
-            new_embed = await self.view.get_embed()
-            await interaction.response.edit_message(embed=new_embed, view=self.view)
-        except ValueError:
-            await interaction.response.send_message("Invalid points value.", ephemeral=True)
+        async with self.cog.config.guild(self.guild).punishments() as pun:
+            for p in pun:
+                if p["points"] == points_val:
+                    p["action"] = action_val
+                    p["duration"] = duration_val
+                    break
+            else:
+                pun.append({"points": points_val, "action": action_val, "duration": duration_val})
+        new_embed = await self.view.get_embed()
+        await interaction.response.edit_message(embed=new_embed, view=self.view)
+    except ValueError:
+        await interaction.response.send_message("Invalid points value.", ephemeral=True)
 
 class PunishmentRemoveModal(ui.Modal, title="Remove Punishment"):
     points = ui.TextInput(label="Points Threshold", style=discord.TextStyle.short)
