@@ -689,3 +689,6 @@ class DMTemplateModal(ui.Modal, title="Edit DM Template"):
     async def on_submit(self, interaction: discord.Interaction):
         await self.cog.config.guild(self.guild).dm_message_template.set(self.template.value)
         await interaction.response.send_message("DM template updated.", ephemeral=True)
+
+async def setup(bot):
+    await bot.add_cog(SpinnerModeration(bot))
