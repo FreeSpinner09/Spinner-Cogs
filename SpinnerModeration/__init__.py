@@ -1,5 +1,8 @@
 from .spinnerMod import SpinnerModeration
+import logging
 
-def setup(bot):
-    bot.add_cog(SpinnerModeration(bot))
+log = logging.getLogger("red.spinnerModeration")
+
+async def setup(bot):
+    await bot.add_cog(SpinnerModeration(bot))
     log.info("SpinnerModeration loaded (admin_check decorator active)")
