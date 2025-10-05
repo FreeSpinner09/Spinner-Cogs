@@ -497,7 +497,7 @@ class SpinnerModeration(commands.Cog):
 
     @commands.hybrid_group(name="modset")
     @commands.guild_only()
-    @is_admin()
+    @admin_check()
     async def modset_group(self, ctx: commands.Context):
         """Moderation setup commands."""
         if ctx.invoked_subcommand is None:
