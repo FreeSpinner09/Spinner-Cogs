@@ -39,7 +39,7 @@ def is_mod_or_admin():
         raise commands.CheckFailure("You do not have sufficient permissions to use this command.")
     return commands.check(predicate)
 
-def is_admin():
+def admin_check():
     async def predicate(ctx):
         if not ctx.guild:
             return False
@@ -175,7 +175,7 @@ class SpinnerModeration(commands.Cog):
         if not duration_str:
             return None
         total_seconds = 0
-        matches = re.findall(r"(\d+)([smhdw])", duration_str.lower())
+        matches = re.findall(r"(\\d+)([smhdw])", duration_str.lower())
         for value, unit in matches:
             value = int(value)
             if unit == "s":
