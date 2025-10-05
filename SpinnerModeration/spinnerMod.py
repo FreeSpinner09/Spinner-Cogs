@@ -613,7 +613,13 @@ class PunishmentAddModal(ui.Modal, title="Add/Edit Punishment"):
             action_val = self.action.value.lower()
             if action_val not in ["mute", "kick", "ban", "warn"]:
                 return await interaction.response.send_message("Invalid action.", ephemeral=True)
-            duration_val = self.cog.parse_duration(self.duration.value)
+            duration_input = str(self.duration.value).strip() if self.duration.value else ""
+            duration_val = self.cog.parse_duration(duration_input)
+            if duration_input and not duration_val:
+                return await interaction.response.send_message(
+                    "Invalid duration format! Use examples like `1h30m`, `2d`, or `1w`.", ephemeral=True
+                    )
+
             async with self.cog.config.guild(self.guild).punishments() as pun:
                 for p in pun:
                     if p["points"] == points_val:
