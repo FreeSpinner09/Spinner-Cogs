@@ -1,4 +1,3 @@
-
 import discord
 from discord import ui
 from redbot.core import commands, Config, checks
